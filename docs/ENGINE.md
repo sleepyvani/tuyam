@@ -81,3 +81,15 @@ Rules:
 `--samples auto` averages 4…324 sub-frames per frame over `--shutter × 1/fps`, stopping when more
 would not change the image by more than `--tol` levels; `--samples N` takes a fixed N. Shaders that
 supersample take `ssTap: SS_TAP` and loop `ssK0()..ssK1()` over `rgss(k)` (see `scenes/cells.ts`).
+
+## 3D (scenes/_3d.ts)
+
+Every plate is a 3D scene, built on the same deterministic rule (all state a function of song time):
+
+- `Cam3` — one pinhole camera shared by ray-marched passes and three.js meshes (`project()` for 2D overlays).
+- `rayPass(cam, glsl)` — a fullscreen ray-march pass; `shade(ro, rd, px)` returns linear HDR; 4 rotated-grid taps per pixel shared with the motion-blur sub-frames.
+- `GLSL_CUP` (the porcelain cup and its wine as SDFs), `GLSL_ROOM` (the dark room with out-of-focus lanterns), `GLSL_RAY` (sphere hits, glow halos).
+- `textGeometry()` + `litMaterial()` — extruded type from the fonts' outlines (Vietnamese diacritics included), used for the chops (`Slams` in drop.ts) and the rows in haysay.
+- `canvasTex()` — a mask texture drawn once on a canvas (the handscroll in namthang).
+
+Scenes: mo (wine lake), ly / le / ket (`_cupscene.ts`), namthang (handscroll on lacquer), mayngan (ink karst valley flight), haysay (3D type + clinking cups), gan (volumetric ink plumes), duong ×2 (road over hills), drop (5 × 3 cup grid), chay (burning paper sheet), tro (ash dunes).

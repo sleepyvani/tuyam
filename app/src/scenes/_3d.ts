@@ -185,3 +185,56 @@ export function renderMeshes(renderer: THREE.WebGLRenderer, scene: THREE.Scene, 
 export function shake3(k: number, t: number, amp = 0.05) {
   return v3(Math.sin(t * 91.7) * amp * k, Math.cos(t * 77.3) * amp * k, Math.sin(t * 63.1) * amp * 0.5 * k);
 }
+
+/**
+ * GLSL: the dark room behind every table scene — near black with a warm floor glow and paper lanterns
+ * out of focus (seven big discs, sixteen small). `room(rd)` is linear HDR.
+ */
+export const GLSL_ROOM = /* glsl */ `
+vec3 room(vec3 rd) {
+  vec3 c = C_INK * 0.6 + C_BLOOD * 0.03 * max(rd.y + 0.3, 0.0);
+  for (int i = 0; i < 7; i++) {
+    float fi = float(i);
+    vec3 d = normalize(vec3(sin(fi * 2.3 + 0.4) * 2.0, 0.25 + 0.35 * sin(fi * 1.7), -1.4 + cos(fi * 1.3)));
+    float a = max(dot(rd, d), 0.0);
+    c += C_SIGNAL * smoothstep(0.99935, 0.9996, a) * 0.9 + C_EMBER * pow(a, 1200.0) * 0.3;
+  }
+  for (int i = 0; i < 16; i++) {
+    float fi = float(i) + 20.0;
+    vec3 d = normalize(vec3(sin(fi * 2.9) * 2.4, 0.1 + 0.5 * fract(fi * 0.37), -1.2 + cos(fi * 1.9) * 0.9));
+    float a = max(dot(rd, d), 0.0);
+    c += mix(C_SIGNAL, C_EMBER, fract(fi * 0.53)) * smoothstep(0.99975, 0.99985, a) * 0.5;
+  }
+  return c;
+}
+`;
+
+/** A texture drawn once on a 2D canvas (masks for shaders: draw with pure R/G/B, 'lighter' to combine). */
+export function canvasTex(w: number, h: number, draw: (c: CanvasRenderingContext2D) => void) {
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const c = cv.getContext('2d')!;
+  draw(c);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.anisotropy = 8;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** GLSL: ray–sphere (returns distance or -1) and a glowing point's halo along a ray. */
+export const GLSL_RAY = /* glsl */ `
+float rSphere(vec3 ro, vec3 rd, vec3 c, float r) {
+  vec3 oc = ro - c; float b = dot(oc, rd), q = dot(oc, oc) - r * r, h = b * b - q;
+  if (h < 0.0) return -1.0;
+  return -b - sqrt(h);
+}
+float halo(vec3 ro, vec3 rd, vec3 c, float tMax, float k) {
+  float tt = clamp(dot(c - ro, rd), 0.0, tMax);
+  float d = length(ro + rd * tt - c);
+  return 1.0 / (1.0 + d * d * k);
+}
+`;

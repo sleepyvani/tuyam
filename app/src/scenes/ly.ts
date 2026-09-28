@@ -1,4 +1,4 @@
-// "Ly" (lines 0–1: Rót đến tràn ly anh chìm đắm trong men cay đắng nồng / ~đắng nồng). 3D, ray-marched.
+// "Ly" (lines 0–1). 3D, ray-marched.
 // A porcelain cup on a black lacquer table, lit by a lantern; paper lanterns glow out of focus behind.
 //   Rót            — a thread of wine pours from above; the level rises word by word (the camera orbits)
 //   tràn ly        — it overflows: a film runs down the outside and a pool spreads over the lacquer

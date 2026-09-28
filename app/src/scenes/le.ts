@@ -1,4 +1,4 @@
-// "Lệ" (line 2: Khóc chát làn mi uống cùng anh cho đêm này say chất ngất). 3D: the cup scene (shared with
+// "Lệ" (line 2). 3D: the cup scene (shared with
 // ly), close on the full cup from just above the rim.
 //   Khóc chát làn  — a tear (clear, refracting the lanterns) hangs and swells at the top of the frame
 //   mi             — it falls; it hits the wine: a crown of wine rises, rings race to the rim
