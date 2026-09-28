@@ -89,18 +89,19 @@ export function drawCup(c: CanvasRenderingContext2D, x: number, y: number, R: nu
     const k = clamp(o.fill - 1, 0, 1);
     c.save();
     c.strokeStyle = rgba('signal', 0.9 * (o.wine ?? 1)); c.lineCap = 'round';
-    const runs = [-0.93, -0.55, 0.35, 0.8];
-    runs.forEach((u, i) => {
-      const len = Math.min(1, k * (1.4 - i * 0.12));
-      const x0 = x + u * R, sgn = Math.sign(u);
-      c.lineWidth = 3 + (i % 2) * 2;
-      c.beginPath(); c.moveTo(x0, y + 2);
-      for (let j = 1; j <= 20; j++) {
-        const v = (j / 20) * len;
-        const px = x + sgn * bowl(v) * Math.abs(u) / Math.max(0.35, Math.abs(u)) * (Math.abs(u) > 0.9 ? 1.02 : Math.abs(u) + (1 - Math.abs(u)) * v * 0.2);
-        c.lineTo(px, y + v * depth);
+    // runs hug the outside of the bowl, each starting at the rim and running down to its own length
+    const runs = [[-1, 1.0, 3], [-1, 0.7, 2], [1, 0.85, 3], [1, 0.55, 2]] as const;
+    runs.forEach(([side, reach, wd], i) => {
+      const len = Math.min(1, k * 1.5) * reach;
+      c.lineWidth = wd;
+      c.beginPath();
+      for (let j = 0; j <= 24; j++) {
+        const v = (j / 24) * len;
+        const px = x + side * (bowl(v) + 2 + i % 2 * 3);
+        if (j) c.lineTo(px, y + v * depth); else c.moveTo(px, y);
       }
       c.stroke();
+      if (len > 0.05) { c.beginPath(); c.arc(x + side * (bowl(len) + 2 + i % 2 * 3), y + len * depth, wd * 1.3, 0, Math.PI * 2); c.fillStyle = rgba('signal', 0.9 * (o.wine ?? 1)); c.fill(); }
     });
     c.fillStyle = rgba('signal', 0.8 * (o.wine ?? 1));
     c.beginPath(); c.ellipse(x, y + depth + R * 0.16, R * (0.3 + 1.1 * k), R * 0.05 * (0.5 + k), 0, 0, Math.PI * 2); c.fill();
