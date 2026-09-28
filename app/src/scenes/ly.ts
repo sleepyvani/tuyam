@@ -58,9 +58,10 @@ export default class Ly extends Scene {
       const est = { family: F.serif(400, true), size: 90, unsung: rgba('ink', 0.1), sung: rgba('ink', 0.35), now: rgba('signal', 0.7), ghost: 0.2 };
       const run = runH(this.E.words, est);
       c.save(); c.globalAlpha = ea;
-      c.filter = 'blur(2px)';
-      drawRun(c, run, 1400 - run.width / 2 + 14, 250 + 8, t, est);
-      c.filter = 'none';
+      // the echo's smear: a few faint offset copies (no canvas blur filter: it costs a lot per frame)
+      c.save(); c.globalAlpha *= 0.35;
+      for (const [dx, dy] of [[10, 6], [16, 9], [22, 12]]) drawRun(c, run, 1400 - run.width / 2 + dx!, 250 + dy!, t, est);
+      c.restore();
       drawRun(c, run, 1400 - run.width / 2, 250, t, est);
       c.restore();
     }

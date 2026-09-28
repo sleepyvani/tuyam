@@ -51,10 +51,11 @@ export default class NamThang extends Scene {
     const ox = 960 - camX - 120;
     // the scroll: a band with rolled ends, the right end unrolling ahead of the words
     const unrolled = this.xs[Math.min(this.xs.length - 1, cur + 2)]! + 200;
+    // the scroll's shadow: two soft offset bands (instead of shadowBlur)
+    c.fillStyle = 'rgba(0,0,0,0.06)'; c.fillRect(ox - 396, 306, unrolled + 400, 422);
+    c.fillStyle = 'rgba(0,0,0,0.05)'; c.fillRect(ox - 392, 310, unrolled + 400, 424);
     c.fillStyle = 'rgba(248,241,226,1)';
-    c.shadowColor = 'rgba(0,0,0,0.18)'; c.shadowBlur = 16; c.shadowOffsetY = 6;
     c.fillRect(ox - 400, 300, unrolled + 400, 420);
-    c.shadowColor = 'transparent';
     c.fillStyle = rgba('ink', 0.75);
     c.fillRect(ox + unrolled - 8, 280, 22, 460);
     c.strokeStyle = rgba('blood', 0.5); c.lineWidth = 1;

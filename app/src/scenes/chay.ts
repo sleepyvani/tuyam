@@ -68,7 +68,12 @@ export default class Chay extends Scene {
     const a20 = smoothstep(l20.words[0]!.start - 0.3, l20.words[0]!.start, t) * (1 - smoothstep(l21.words[0]!.start - 0.4, l21.words[0]!.start, t));
     if (a20 > 0) {
       c.save(); c.globalAlpha = a20;
-      c.shadowColor = rgba('ember', 0.9); c.shadowBlur = 18 * smoothstep(l20.words[0]!.start, l20.end + 1, t);
+      // the heat at the letters' edges: an ember halo of offset copies (cheaper than shadowBlur)
+      const heat = smoothstep(l20.words[0]!.start, l20.end + 1, t);
+      if (heat > 0.01) {
+        const hst = { family: F.serif(600), size: 150, unsung: rgba('ember', 0), sung: rgba('ember', 0.22 * heat), now: rgba('ember', 0.22 * heat), hold: 1 };
+        for (const [dx, dy] of [[-3, 0], [3, 0], [0, -3], [0, 3]]) karaoke(c, l20.words, 960 + dx!, 580 + dy!, t, hst);
+      }
       karaoke(c, l20.words, 960, 580, t, { family: F.serif(600), size: 150, unsung: rgba('ink', 0.15), sung: rgba('ink', 0.92), hold: 1 });
       c.restore();
     }
