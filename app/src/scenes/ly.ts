@@ -1,20 +1,25 @@
-// "Ly" (lines 0–1: Rót đến tràn ly anh chìm đắm trong men cay đắng nồng / ~đắng nồng). The cup on rice
-// paper. A stream of wine pours from above on "Rót" and fills it word by word; on "tràn" it overflows
-// and the ledger ticks up; "chìm đắm" the camera sinks toward the surface; the backing "đắng nồng"
-// comes back as a ghost echo of the words, blurred and offset.
+// "Ly" (lines 0–1: Rót đến tràn ly anh chìm đắm trong men cay đắng nồng / ~đắng nồng). 3D, ray-marched.
+// A porcelain cup on a black lacquer table, lit by a lantern; paper lanterns glow out of focus behind.
+//   Rót            — a thread of wine pours from above; the level rises word by word (the camera orbits)
+//   tràn ly        — it overflows: a film runs down the outside and a pool spreads over the lacquer
+//   chìm đắm       — the camera dives into the cup and goes under: inside the wine, amber haze, light
+//                    breaking through the surface above, bubbles rising
+//   (đắng nồng)    — the echo floats as a ghost line inside the wine
 import * as THREE from 'three';
 import { Scene, type Frame } from '../engine/scene';
 import { Layer2D, W } from '../engine/gl';
 import { F } from '../engine/type';
 import { rgba } from '../engine/palette';
 import type { Line } from '../engine/lyrics';
-import { ease, keys, prog, smoothstep } from '../engine/util';
-import { Ground, beatsIn, cupTimes, drawCups, drawRun, karaoke, label, pulseAt, runH } from './_kit';
-import { drawCup } from './_cup';
+import { ease, keys, lerp, prog, smoothstep } from '../engine/util';
+import { beatsIn, cupTimes, drawCups, drawRun, karaoke, label, pulseAt, runH } from './_kit';
+import { Cam3, v3 } from './_3d';
+import { cupPass } from './_cupscene';
 
 export default class Ly extends Scene {
-  ground = new Ground();
+  cam = new Cam3();
   layer = new Layer2D();
+  pass = cupPass(this.cam);
   L!: Line; E!: Line;
   beats: number[] = [];
   cups: number[] = [];
@@ -32,43 +37,39 @@ export default class Ly extends Scene {
     const t = f.t;
     const w = (s: string) => this.L.words.find((x) => x.w.toLowerCase() === s)!;
     const rot = w('rót'), tran = w('tràn'), chim = w('chìm');
-    this.ground.render(renderer, out, { paper: 1, t, stain: 0.25 });
+    const D = 0.42;
+    const level = t < tran.start ? lerp(-D + 0.01, -0.02, prog(t, rot.start, tran.start, ease.inOutQuad)) : -0.004;
+    const spill = prog(t, tran.start, tran.start + 1.8, ease.outCubic);
+    // camera: orbit, then the dive into the cup (goes under the surface just after "chìm")
+    const orbit = (t - this.ctx.start) * 0.35 + 0.6;
+    const dive = prog(t, chim.start - 0.3, chim.start + 0.9, ease.inOutCubic);
+    const far = v3(Math.sin(orbit) * 2.1, 0.75, Math.cos(orbit) * 2.1);
+    const near = v3(Math.sin(orbit) * 0.1, -0.12, Math.cos(orbit) * 0.1);
+    const pos = far.clone().lerp(near, dive);
+    const tg = v3(0, lerp(-0.18, -0.3, dive), 0).add(v3(Math.sin(orbit + 2) * 0.3 * dive, 0, Math.cos(orbit + 2) * 0.3 * dive));
+    const underNow = dive > 0.93;
+    if (underNow) { pos.set(Math.sin(t * 0.2) * 0.1, -0.2, 0.15); tg.set(Math.sin(t * 0.3) * 0.5, 0.35 + 0.1 * Math.sin(t * 0.5), -1); }
+    this.cam.set(pos, tg, underNow ? Math.sin(t * 0.7) * 0.05 : 0, keys(t, [[this.ctx.start, 34], [chim.start, 34], [chim.start + 0.9, 60]]));
+    const u = this.pass.u;
+    u.t!.value = t; u.level!.value = level; u.pour!.value = smoothstep(rot.start - 0.15, rot.start, t) * (1 - smoothstep(tran.start + 0.2, tran.start + 0.5, t));
+    u.spill!.value = spill; u.under!.value = underNow ? 1 : 0;
+    this.pass.render(renderer, out);
     const L = this.layer; L.clear();
     const c = L.ctx;
-    // fill: pours from Rót to tràn (to the brim), overflows after tràn
-    const fill = t < tran.start ? 0.95 * prog(t, rot.start, tran.start, ease.inOutQuad) : 1 + 0.9 * prog(t, tran.start, tran.start + 1.6, ease.outCubic);
-    const zoom = keys(t, [[this.ctx.start, 1.0], [chim.start, 1.0], [chim.start + 1.2, 1.35, ease.inOutCubic], [this.ctx.end, 1.42]]);
-    c.save();
-    c.translate(960, 470); c.scale(zoom, zoom); c.translate(-960, -470);
-    // the pour: a stream from the top while pouring
-    const pourOn = t >= rot.start - 0.1 && t < tran.start + 0.5;
-    const surf = drawCup(c, 960, 470, 170, t, { fill, ripples: [rot.start, tran.start], slosh: 0.03 * Math.sin(t * 5) * smoothstep(rot.start, rot.start + 0.3, t) * (1 - smoothstep(tran.start + 1, tran.start + 2, t)) });
-    if (pourOn) {
-      const k = smoothstep(rot.start - 0.1, rot.start + 0.1, t) * (1 - smoothstep(tran.start + 0.2, tran.start + 0.5, t));
-      c.fillStyle = rgba('signal', 0.9 * k);
-      const wob = Math.sin(t * 17) * 2;
-      c.fillRect(960 - 5 + wob, -40, 10, surf.y + 40);
-    }
-    c.restore();
-    // the line, bottom; the echo as a ghost above it
-    const st = { family: F.serif(600), size: 70, unsung: rgba('ink', 0.18), sung: rgba('ink', 0.92) };
-    karaoke(c, this.L.words, 960, 930, t, st, 1700);
+    const st = { family: F.serif(600), size: 72, unsung: rgba('bone', 0.2), sung: rgba('bone', 0.96) };
+    karaoke(c, this.L.words, 960, 960, t, st, 1700);
     const ea = smoothstep(this.E.words[0]!.start - 0.2, this.E.words[0]!.start, t);
     if (ea > 0) {
-      const est = { family: F.serif(400, true), size: 90, unsung: rgba('ink', 0.1), sung: rgba('ink', 0.35), now: rgba('signal', 0.7), ghost: 0.2 };
+      const est = { family: F.serif(400, true), size: 110, unsung: rgba('bone', 0.1), sung: rgba('bone', 0.5), now: rgba('ember', 0.8), ghost: 0.2 };
       const run = runH(this.E.words, est);
-      c.save(); c.globalAlpha = ea;
-      // the echo's smear: a few faint offset copies (no canvas blur filter: it costs a lot per frame)
-      c.save(); c.globalAlpha *= 0.35;
-      for (const [dx, dy] of [[10, 6], [16, 9], [22, 12]]) drawRun(c, run, 1400 - run.width / 2 + dx!, 250 + dy!, t, est);
-      c.restore();
-      drawRun(c, run, 1400 - run.width / 2, 250, t, est);
+      c.save(); c.globalAlpha = ea * 0.8;
+      drawRun(c, run, 960 - run.width / 2 + Math.sin(t * 2) * 12, 470 + Math.sin(t * 1.3) * 8, t, est);
       c.restore();
     }
-    drawCups(c, W - 110, 150, t, this.cups, { ink: true });
-    label(c, 'I · LY', 110, 96, { size: 13, color: rgba('ink', 0.5) });
+    drawCups(c, W - 110, 150, t, this.cups);
+    label(c, 'I · LY', 110, 96, { size: 13, color: rgba('ash', 0.6) });
     this.ctx.comp.draw(renderer, L.upload(), out);
     const kick = pulseAt(this.beats, t, 0.1);
-    return { bloom: 0.35, vignette: 0.3, paper: 1, zoom: 1 + kick * 0.004 };
+    return { bloom: 0.8, bloomThreshold: 0.7, halation: 0.35, vignette: 0.5, zoom: 1 + kick * 0.006, ca: underNow ? 2.5 : 1.2 };
   }
 }
